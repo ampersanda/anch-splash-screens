@@ -1,0 +1,85 @@
+(ns acnh.main
+  "App to display splash screens of Nook Phone. Implements Deep Link to show specific video to display."
+  (:require ["package:flutter/material.dart" :as m]
+            ["package:video_player/video_player.dart" :as player]
+            ["package:flutter/scheduler.dart" :refer [SchedulerBinding]]
+            [cljd.flutter.alpha :as f]
+            ["dart:core" :as core]))
+
+(def bg-box
+  "Color for box background before video from `video-path` loads"
+  {:bells (.fromRGBO m/Color 132 174 89 1)
+   :best-friend (.fromRGBO m/Color 237 157 118 1)
+   :call (.fromRGBO m/Color 201 200 102 1)
+   :call-islander (.fromRGBO m/Color 174 210 223 1)
+   :call-camera (.fromRGBO m/Color 190 146 237 1)
+   :critters (.fromRGBO m/Color 239 214 131 1)
+   :custom-design (.fromRGBO m/Color 232 171 187 1)
+   :diy (.fromRGBO m/Color 213 155 123 1)
+   :dodo (.fromRGBO m/Color 73 150 207 1)
+   :maps (.fromRGBO m/Color 164 226 197 1)
+   :messages (.fromRGBO m/Color 207 222 118 1)
+   :nook-mile (.fromRGBO m/Color 150 163 240 1)
+   :nook-shopping (.fromRGBO m/Color 234 232 121 1)
+   :nook-passport (.fromRGBO m/Color 164 212 157 1)
+   :star-fragment (.fromRGBO m/Color 88 89 146 1)})
+
+(def video-path
+  {:bells "assets/splash_videos/ani-bells.mp4"
+   :best-friend "assets/splash_videos/ani-bestfriend.mp4"
+   :call "assets/splash_videos/ani-call.mp4"
+   :call-islander "assets/splash_videos/ani-callinslander.mp4"
+   :call-camera "assets/splash_videos/ani-camera.mp4"
+   :critters "assets/splash_videos/ani-critters.mp4"
+   :custom-design "assets/splash_videos/ani-customdesign.mp4"
+   :diy "assets/splash_videos/ani-diy.mp4"
+   :dodo "assets/splash_videos/ani-dodo.mp4"
+   :maps "assets/splash_videos/ani-maps.mp4"
+   :messages "assets/splash_videos/ani-messages.mp4"
+   :nook-mile "assets/splash_videos/ani-nookmiles.mp4"
+   :nook-shopping "assets/splash_videos/ani-nookshopping.mp4"
+   :nook-passport "assets/splash_videos/ani-passport.mp4"
+   :star-fragment "assets/splash_videos/ani-starfragment.mp4"})
+
+(defn ^m/Widget home [& {:keys [splash-mode]}]
+  (f/widget
+   :state [playing? false]
+   :with [controller (.asset player/VideoPlayerController (video-path splash-mode))]
+
+   (core/print (str controller))
+
+   (when-not @playing?
+     (-> SchedulerBinding
+         (.instance)
+         (.addPostFrameCallback
+          (fn [_]
+            (.setLooping controller false)
+            (await (.initialize controller))
+            (await (.play controller))
+
+            (reset! playing? true)
+            nil))))
+
+   (m/Scaffold.
+    :body
+    (let [loading-widget (.expand m/SizedBox :child (m/ColoredBox. :color (bg-box :nook-mile)))
+          video-player (m/AspectRatio.
+                        :aspectRatio (-> controller
+                                         (.-value)
+                                         (.-aspectRatio))
+                        :child (player/VideoPlayer controller))]
+      (if playing?
+        video-player
+        loading-widget)))))
+
+(defn ^m/Widget my-app []
+  (f/widget
+   (m/MaterialApp.
+    :title                      "Animal Crossing Splashes"
+    :theme                      (m/ThemeData. :primarySwatch m.Colors/pink)
+    :debugShowCheckedModeBanner false
+    :home                       (home :splash-mode :best-friend))))
+
+#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
+(defn ^m/void main []
+  (m/runApp (my-app)))
