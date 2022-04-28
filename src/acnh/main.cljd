@@ -2,7 +2,7 @@
   "App to display splash screens of Nook Phone. Implements Deep Link to show specific video to display."
   (:require ["package:flutter/material.dart" :as m]
             ["package:video_player/video_player.dart" :as player]
-            ["package:flutter/scheduler.dart" :refer [SchedulerBinding]]
+            ["package:flutter/scheduler.dart" :as scheduler]
             [cljd.flutter.alpha :as f]
             ["dart:core" :as core]))
 
@@ -41,15 +41,14 @@
    :nook-passport "assets/splash_videos/ani-passport.mp4"
    :star-fragment "assets/splash_videos/ani-starfragment.mp4"})
 
-(defn ^m/Widget home [& {:keys [splash-mode]}]
+(defn ^m/Widget home
+  [& {:keys [splash-mode]}]
   (f/widget
    :state [playing? false]
    :with [controller (.asset player/VideoPlayerController (video-path splash-mode))]
 
-   (core/print (str controller))
-
    (when-not @playing?
-     (-> SchedulerBinding
+     (-> scheduler/SchedulerBinding
          (.instance)
          (.addPostFrameCallback
           (fn [_]
@@ -62,15 +61,17 @@
 
    (m/Scaffold.
     :body
-    (let [loading-widget (.expand m/SizedBox :child (m/ColoredBox. :color (bg-box :nook-mile)))
-          video-player (m/AspectRatio.
-                        :aspectRatio (-> controller
-                                         (.-value)
-                                         (.-aspectRatio))
-                        :child (player/VideoPlayer controller))]
-      (if playing?
-        video-player
-        loading-widget)))))
+    (if (nil? splash-mode)
+      (m/Text. "show settings")
+      (let [loading-widget (.expand m/SizedBox :child (m/ColoredBox. :color (bg-box splash-mode)))
+            video-player (m/AspectRatio.
+                          :aspectRatio (-> controller
+                                           (.-value)
+                                           (.-aspectRatio))
+                          :child (player/VideoPlayer controller))]
+        (if playing?
+          video-player
+          loading-widget))))))
 
 (defn ^m/Widget my-app []
   (f/widget
@@ -78,7 +79,8 @@
     :title                      "Animal Crossing Splashes"
     :theme                      (m/ThemeData. :primarySwatch m.Colors/pink)
     :debugShowCheckedModeBanner false
-    :home                       (home :splash-mode :best-friend))))
+    :home (home :splash-mode :bells)
+    :routes {"/settings" (fn [context] (m/Text. "yes"))})))
 
 #_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
 (defn ^m/void main []
