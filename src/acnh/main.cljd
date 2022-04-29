@@ -1,10 +1,30 @@
 (ns acnh.main
   "App to display splash screens of Nook Phone. Implements Deep Link to show specific video to display."
   (:require ["package:flutter/material.dart" :as m]
+            ["package:flutter/widgets.dart" :as w]
             ["package:video_player/video_player.dart" :as player]
             ["package:flutter/scheduler.dart" :as scheduler]
             [cljd.flutter.alpha :as f]
-            ["dart:core" :as core]))
+            ["dart:core" :as core]
+            ["dart:async" :as dasync]
+            ["package:url_launcher/url_launcher.dart" :as launcher]))
+
+(def shortcuts-link
+  {:bells "shortcuts://run-shortcut?name=anch-bells"
+   :best-friend "shortcuts://run-shortcut?name=anch-best-friend"
+   :call "shortcuts://run-shortcut?name=anch-nook-miles"
+   :call-islander "shortcuts://run-shortcut?name=anch-call-islander"
+   :call-camera "shortcuts://run-shortcut?name=anch-call-camera"
+   :critters "shortcuts://run-shortcut?name=anch-critters"
+   :custom-design "shortcuts://run-shortcut?name=anch-custom-design"
+   :diy "shortcuts://run-shortcut?name=anch-diy"
+   :dodo "shortcuts://run-shortcut?name=anch-dodo"
+   :maps "shortcuts://run-shortcut?name=anch-maps"
+   :messages "shortcuts://run-shortcut?name=anch-messages"
+   :nook-mile "shortcuts://run-shortcut?name=anch-nook-mile"
+   :nook-shopping "shortcuts://run-shortcut?name=anch-nook-shopping"
+   :nook-passport "shortcuts://run-shortcut?name=anch-nook-passport"
+   :star-fragment "shortcuts://run-shortcut?name=anch-star-fragment"})
 
 (def bg-box
   "Color for box background before video from `video-path` loads"
@@ -43,6 +63,7 @@
 
 (defn ^m/Widget home
   [& {:keys [splash-mode]}]
+
   (f/widget
    :state [playing? false]
    :with [controller (.asset player/VideoPlayerController (video-path splash-mode))]
@@ -52,35 +73,53 @@
          (.instance)
          (.addPostFrameCallback
           (fn [_]
-            (.setLooping controller false)
-            (await (.initialize controller))
-            (await (.play controller))
+            (doto controller
+              (.setLooping false)
+              (.addListener #(let [duration (.-duration (.-value controller))
+                                   position (await (.-position controller))
+                                   url (.parse core/Uri (shortcuts-link splash-mode))
+                                   delay (core/Duration. :seconds 1)]
+                               (when (= duration position)
+                                 (await (.delayed dasync/Future delay))
+                                 (await (launcher/launchUrl url))
+                                 nil)))
+              (-> (.initialize) (await))
+              (-> (.play) (await)))
 
             (reset! playing? true)
             nil))))
 
    (m/Scaffold.
     :body
-    (if (nil? splash-mode)
-      (m/Text. "show settings")
-      (let [loading-widget (.expand m/SizedBox :child (m/ColoredBox. :color (bg-box splash-mode)))
-            video-player (m/AspectRatio.
-                          :aspectRatio (-> controller
-                                           (.-value)
-                                           (.-aspectRatio))
-                          :child (player/VideoPlayer controller))]
-        (if playing?
-          video-player
-          loading-widget))))))
+    (let [loading-widget (.expand m/SizedBox :child (m/ColoredBox. :color (bg-box splash-mode)))
+          video-player (m/AspectRatio.
+                        :aspectRatio (-> controller
+                                         (.-value)
+                                         (.-aspectRatio))
+                        :child (player/VideoPlayer controller))]
+      (if playing?
+        video-player
+        loading-widget)))))
 
 (defn ^m/Widget my-app []
-  (f/widget
-   (m/MaterialApp.
-    :title                      "Animal Crossing Splashes"
-    :theme                      (m/ThemeData. :primarySwatch m.Colors/pink)
-    :debugShowCheckedModeBanner false
-    :home (home :splash-mode :bells)
-    :routes {"/settings" (fn [context] (m/Text. "yes"))})))
+  (let [routes (into {} (doall (map (fn [key] [(str "/" (name key)) (home :splash-mode key)]) (keys video-path))))]
+    (f/widget
+     (m/MaterialApp.
+      :title                      "Animal Crossing Splashes"
+      :theme                      (m/ThemeData. :primarySwatch m.Colors/pink)
+      :debugShowCheckedModeBanner false
+      :initialRoute "/"
+      :onGenerateRoute
+      (fn [settings]
+        (let [route-name (.-name settings)
+              included? (contains? routes route-name)]
+
+          (m/MaterialPageRoute.
+           :builder (fn [context]
+                      (cond
+                        (= route-name "/") (home :splash-mode :bells)
+                        included? (get routes route-name)
+                        :else (m/Text. "404"))))))))))
 
 #_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
 (defn ^m/void main []
