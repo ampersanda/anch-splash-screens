@@ -12,7 +12,7 @@
 (def shortcuts-link
   {:bells "shortcuts://run-shortcut?name=anch-bells"
    :best-friend "shortcuts://run-shortcut?name=anch-best-friend"
-   :call "shortcuts://run-shortcut?name=anch-nook-miles"
+   :call "shortcuts://run-shortcut?name=anch-call"
    :call-islander "shortcuts://run-shortcut?name=anch-call-islander"
    :call-camera "shortcuts://run-shortcut?name=anch-call-camera"
    :critters "shortcuts://run-shortcut?name=anch-critters"
