@@ -64,6 +64,7 @@
 (defn ^m/Widget home [& {:keys [splash-mode]}]
 
   (f/widget
+   :context context
    :state [playing? false]
    :with [controller (.asset player/VideoPlayerController (video-path splash-mode))]
 
@@ -80,6 +81,7 @@
                                    delay (core/Duration. :seconds 1)]
                                (when (= duration position)
                                  (await (.delayed dasync/Future delay))
+                                 (.pop m/Navigator context nil)
                                  (await (launcher/launchUrl url))
                                  nil)))
               (-> (.initialize) (await))
