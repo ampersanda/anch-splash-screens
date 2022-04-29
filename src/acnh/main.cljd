@@ -118,8 +118,10 @@
         (let [route-name (.-name settings)
               included? (contains? routes route-name)]
 
-          (m/MaterialPageRoute.
-           :builder (fn [context]
+          (m/PageRouteBuilder.
+           :transitionDuration (.-zero core/Duration)
+           :reverseTransitionDuration (.-zero core/Duration)
+           :pageBuilder (fn [_ _ _]
                       (cond
                         (= route-name "/") (blank)
                         included? (get routes route-name)
