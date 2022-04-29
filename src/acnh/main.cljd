@@ -48,7 +48,7 @@
   {:bells "assets/splash_videos/ani-bells.mp4"
    :best-friend "assets/splash_videos/ani-bestfriend.mp4"
    :call "assets/splash_videos/ani-call.mp4"
-   :call-islander "assets/splash_videos/ani-callinslander.mp4"
+   :call-islander "assets/splash_videos/ani-callislander.mp4"
    :call-camera "assets/splash_videos/ani-camera.mp4"
    :critters "assets/splash_videos/ani-critters.mp4"
    :custom-design "assets/splash_videos/ani-customdesign.mp4"
@@ -61,8 +61,7 @@
    :nook-passport "assets/splash_videos/ani-passport.mp4"
    :star-fragment "assets/splash_videos/ani-starfragment.mp4"})
 
-(defn ^m/Widget home
-  [& {:keys [splash-mode]}]
+(defn ^m/Widget home [& {:keys [splash-mode]}]
 
   (f/widget
    :state [playing? false]
@@ -101,6 +100,11 @@
         video-player
         loading-widget)))))
 
+(defn ^m/Widget blank []
+  (f/widget
+   (m/Scaffold.
+    :body (.expand m/SizedBox :child (m/ColoredBox. :color (bg-box :nook-mile))))))
+
 (defn ^m/Widget my-app []
   (let [routes (into {} (doall (map (fn [key] [(str "/" (name key)) (home :splash-mode key)]) (keys video-path))))]
     (f/widget
@@ -117,7 +121,7 @@
           (m/MaterialPageRoute.
            :builder (fn [context]
                       (cond
-                        (= route-name "/") (home :splash-mode :bells)
+                        (= route-name "/") (blank)
                         included? (get routes route-name)
                         :else (m/Text. "404"))))))))))
 
