@@ -49,3 +49,4 @@ app.*.map.json
 .cpcache
 lib/cljd-out
 .clj-kondo/
+.lsp
